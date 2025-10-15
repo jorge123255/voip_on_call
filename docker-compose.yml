@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  voip-forwarder:
+    build: .
+    container_name: voip-call-forwarder
+    restart: unless-stopped
+
+    # Network configuration for Unraid with br0 and static IP
+    networks:
+      br0:
+        ipv4_address: 192.168.1.106
+
+    volumes:
+      # Persist on-call configuration
+      - ./config:/app/config
+      # Persist Asterisk logs
+      - ./logs:/var/log/asterisk
+      # Persist voicemail and recordings (optional)
+      - ./data:/var/spool/asterisk
+
+    environment:
+      - ONCALL_CONFIG=/app/config/oncall.json
+      - API_PORT=8080
+      - TZ=America/New_York  # Set your timezone
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    labels:
+      - "description=VOIP Call Forwarder for SOC Alerts"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+networks:
+  br0:
+    external: true
+    name: br0

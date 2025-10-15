@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>On-Call Management System</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>📞 On-Call Management System</h1>
+            <div class="header-actions">
+                <div class="theme-toggle" onclick="toggleTheme()">
+                    <button class="theme-toggle-btn" id="lightBtn">☀️</button>
+                    <button class="theme-toggle-btn" id="darkBtn">🌙</button>
+                </div>
+                <span class="time" id="currentTime"></span>
+                <button class="btn btn-secondary" onclick="refreshAll()">🔄 Refresh</button>
+            </div>
+        </header>
+
+        <!-- Toast Container -->
+        <div class="toast-container" id="toastContainer"></div>
+
+        <!-- Navigation -->
+        <nav class="nav-tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="users">Users</button>
+            <button class="tab-btn" data-tab="rotations">Rotations</button>
+            <button class="tab-btn" data-tab="schedule">Calendar</button>
+            <button class="tab-btn" data-tab="overrides">Overrides</button>
+            <button class="tab-btn" data-tab="audit">Audit Log</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+        </nav>
+
+        <!-- Dashboard Tab -->
+        <div class="tab-content active" id="dashboard">
+            <!-- Hero Section -->
+            <div class="hero-section" id="heroSection">
+                <div class="hero-content">
+                    <div class="hero-primary">
+                        <div class="hero-title">Currently On-Call</div>
+                        <div class="hero-name" id="heroName">Loading...</div>
+                        <div class="hero-phone" id="heroPhone"></div>
+                        <span class="hero-badge" id="heroBadge">Active</span>
+                        <div class="hero-actions" style="margin-top: 20px;">
+                            <button class="btn" onclick="showQuickOverride()">⚡ Override Now</button>
+                            <button class="btn" onclick="showSwapModal()">🔄 Swap On-Call</button>
+                            <button class="btn" onclick="showOverrideModal()">🔀 Create Override</button>
+                            <button class="btn" onclick="switchTab('settings')">⚙️ Settings</button>
+                        </div>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="hero-stat">
+                            <div class="hero-stat-value" id="heroTotalUsers">0</div>
+                            <div class="hero-stat-label">Team Members</div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-value" id="heroActiveRotations">0</div>
+                            <div class="hero-stat-label">Rotations</div>
+                        </div>
+                        <div class="hero-stat">
+                            <div class="hero-stat-value" id="heroActiveOverrides">0</div>
+                            <div class="hero-stat-label">Overrides</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid">
+                <!-- System Status Card -->
+                <div class="card system-status">
+                    <h2>🔧 System Status</h2>
+                    <div id="systemStatus">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="card">
+                    <h2>📋 Recent Activity</h2>
+                    <div class="activity-feed" id="activityFeed">
+                        <div class="loading">Loading...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Week Preview -->
+            <div class="card">
+                <h2>📅 Upcoming Schedule</h2>
+                <div id="nextWeekPreview">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card">
+                <h2>⚡ Quick Actions</h2>
+                <div class="quick-actions">
+                    <button class="btn btn-primary" onclick="showOverrideModal()">
+                        🔀 Create Override
+                    </button>
+                    <button class="btn btn-primary" onclick="switchTab('users')">
+                        👥 Manage Users
+                    </button>
+                    <button class="btn btn-primary" onclick="switchTab('rotations')">
+                        🔄 Manage Rotations
+                    </button>
+                    <button class="btn btn-primary" onclick="switchTab('settings')">
+                        ⚙️ Configure Escalation
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div class="tab-content" id="users">
+            <div class="card">
+                <div class="card-header">
+                    <h2>👥 User Management</h2>
+                    <button class="btn btn-primary" onclick="showUserModal()">+ Add User</button>
+                </div>
+                <div id="usersList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rotations Tab -->
+        <div class="tab-content" id="rotations">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔄 Rotation Schedules</h2>
+                    <button class="btn btn-primary" onclick="showRotationModal()">+ Create Rotation</button>
+                </div>
+                <div id="rotationsList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule/Calendar Tab -->
+        <div class="tab-content" id="schedule">
+            <div class="card">
+                <div class="card-header">
+                    <h2>📅 Schedule Calendar</h2>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="showImportScheduleModal()">📥 Import Schedule</button>
+                        <button class="btn btn-secondary" onclick="exportSchedule()">📤 Export to CSV</button>
+                        <button class="btn btn-secondary" onclick="clearManualSchedule()">🗑️ Clear Manual</button>
+                    </div>
+                </div>
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    Click any day to manually assign on-call. Days with 📌 are manually assigned and override rotations.
+                </p>
+                <div class="calendar-controls">
+                    <button class="btn btn-secondary" onclick="previousMonth()">← Previous</button>
+                    <h3 id="currentMonth">Loading...</h3>
+                    <button class="btn btn-secondary" onclick="goToToday()">Today</button>
+                    <button class="btn btn-secondary" onclick="nextMonth()">Next →</button>
+                </div>
+                <div id="calendarGrid">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overrides Tab -->
+        <div class="tab-content" id="overrides">
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔀 Schedule Overrides</h2>
+                    <button class="btn btn-primary" onclick="showOverrideModal()">+ Create Override</button>
+                </div>
+                <div id="overridesList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audit Log Tab -->
+        <div class="tab-content" id="audit">
+            <div class="card">
+                <h2>📋 Audit Log</h2>
+                <div id="auditLog">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div class="tab-content" id="settings">
+            <!-- VoIP Provider Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🌐 VoIP Provider Settings</h2>
+                    <button class="btn btn-primary" onclick="testVoipConnection()">🔌 Test Connection</button>
+                </div>
+                <form id="voipSettingsForm" onsubmit="saveVoipSettings(event)">
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <input type="text" value="voip.ms" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label>Account Username *</label>
+                        <input type="text" id="voipUsername" required placeholder="500142">
+                    </div>
+                    <div class="form-group">
+                        <label>Account Password *</label>
+                        <input type="password" id="voipPassword" required placeholder="Enter password">
+                    </div>
+                    <div class="form-group">
+                        <label>SIP Server/POP *</label>
+                        <select id="voipServer" required>
+                            <option value="chicago2.voip.ms">Chicago 2, IL (chicago2.voip.ms)</option>
+                            <option value="newyork5.voip.ms">New York 5, NY (newyork5.voip.ms)</option>
+                            <option value="losangeles3.voip.ms">Los Angeles 3, CA (losangeles3.voip.ms)</option>
+                            <option value="dallas2.voip.ms">Dallas 2, TX (dallas2.voip.ms)</option>
+                            <option value="atlanta2.voip.ms">Atlanta 2, GA (atlanta2.voip.ms)</option>
+                            <option value="seattle.voip.ms">Seattle, WA (seattle.voip.ms)</option>
+                            <option value="toronto2.voip.ms">Toronto 2, ON (toronto2.voip.ms)</option>
+                            <option value="montreal2.voip.ms">Montreal 2, QC (montreal2.voip.ms)</option>
+                            <option value="london.voip.ms">London, UK (london.voip.ms)</option>
+                            <option value="amsterdam.voip.ms">Amsterdam, NL (amsterdam.voip.ms)</option>
+                        </select>
+                        <small>Select the closest server for best call quality</small>
+                    </div>
+                    <div class="form-group">
+                        <label>DID Number</label>
+                        <input type="tel" id="voipDid" placeholder="3126206795">
+                        <small>Your main incoming phone number</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Save VoIP Settings</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Escalation Policy -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔄 Escalation Policy</h2>
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" id="escalationEnabled" onchange="toggleEscalation()">
+                        <span>Enable Cascading Failover</span>
+                    </label>
+                </div>
+                <p style="margin-bottom: 20px; color: var(--text-secondary);">
+                    Configure automatic escalation when the primary on-call person doesn't answer.
+                    Calls will cascade through each level until someone answers.
+                </p>
+                <div id="escalationLevels">
+                    <!-- Dynamically populated -->
+                </div>
+                <button class="btn btn-primary" onclick="addEscalationLevel()" style="margin-top: 12px;">
+                    ➕ Add Escalation Level
+                </button>
+                <div class="form-actions" style="margin-top: 20px;">
+                    <button class="btn btn-primary" onclick="saveEscalationPolicy()">💾 Save Escalation Policy</button>
+                </div>
+            </div>
+
+            <!-- System Settings -->
+            <div class="card">
+                <h2>⚙️ System Settings</h2>
+                <form id="systemSettingsForm" onsubmit="saveSystemSettings(event)">
+                    <div class="form-group">
+                        <label>System Timezone</label>
+                        <select id="systemTimezone">
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">Eastern Time</option>
+                            <option value="America/Chicago">Central Time</option>
+                            <option value="America/Denver">Mountain Time</option>
+                            <option value="America/Los_Angeles">Pacific Time</option>
+                            <option value="Europe/Dublin">Dublin</option>
+                            <option value="Europe/London">London</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="enableCallHistory" checked>
+                            Enable Call History Tracking
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label>Alert Email (optional)</label>
+                        <input type="email" id="alertEmail" placeholder="admin@company.com">
+                        <small>Receive email alerts for system issues</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">💾 Save System Settings</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Call History -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📞 Recent Call History</h2>
+                    <button class="btn btn-secondary" onclick="loadCallHistory()">🔄 Refresh</button>
+                </div>
+                <div id="callHistoryList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Test Call -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🧪 Test Call Forwarding</h2>
+                    <button class="btn btn-primary" onclick="initiateTestCall()">📞 Test Now</button>
+                </div>
+                <p style="margin-bottom: 12px; color: var(--text-secondary);">
+                    Test your call forwarding system by triggering a simulated SOC alert call.
+                    This will call the current on-call person through the escalation chain if configured.
+                </p>
+                <div id="testCallStatus" style="margin-top: 12px;"></div>
+            </div>
+
+            <!-- Webhooks -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🔔 Webhooks & Notifications</h2>
+                    <button class="btn btn-primary" onclick="showWebhookModal()">+ Add Webhook</button>
+                </div>
+                <p style="margin-bottom: 16px; color: var(--text-secondary);">
+                    Send notifications to Slack, Discord, Teams, or custom HTTP endpoints when events occur.
+                </p>
+                <div id="webhooksList">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Webhook Delivery Log -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📊 Webhook Delivery Log</h2>
+                    <button class="btn btn-secondary" onclick="loadWebhookDeliveryLog()">🔄 Refresh</button>
+                </div>
+                <div id="webhookDeliveryLog">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Backup & Export -->
+            <div class="card">
+                <h2>💾 Backup & Export</h2>
+                <div class="backup-actions">
+                    <button class="btn btn-primary" onclick="exportConfiguration()">
+                        📥 Export Configuration
+                    </button>
+                    <button class="btn btn-secondary" onclick="showImportModal()">
+                        📤 Import Configuration
+                    </button>
+                </div>
+                <p><small>Export your users, rotations, and overrides as a backup file</small></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="userModalTitle">Add User</h2>
+                <span class="close" onclick="closeModal('userModal')">&times;</span>
+            </div>
+            <form id="userForm" onsubmit="saveUser(event)">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="userName" required>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="userPhone" required placeholder="+15551234567">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="userEmail">
+                </div>
+                <div class="form-group">
+                    <label>Timezone</label>
+                    <select id="userTimezone">
+                        <option value="UTC">UTC</option>
+                        <option value="America/New_York">Eastern</option>
+                        <option value="America/Chicago">Central</option>
+                        <option value="America/Denver">Mountain</option>
+                        <option value="America/Los_Angeles">Pacific</option>
+                        <option value="Europe/Dublin">Dublin</option>
+                        <option value="Europe/London">London</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="userActive" checked>
+                        Active
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Rotation Modal -->
+    <div id="rotationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Rotation Schedule</h2>
+                <span class="close" onclick="closeModal('rotationModal')">&times;</span>
+            </div>
+            <form id="rotationForm" onsubmit="saveRotation(event)">
+                <div class="form-group">
+                    <label>Rotation Name *</label>
+                    <input type="text" id="rotationName" required placeholder="Weekly Engineer Rotation">
+                </div>
+                <div class="form-group">
+                    <label>Rotation Type *</label>
+                    <select id="rotationType" required>
+                        <option value="daily">Daily - Changes every day</option>
+                        <option value="weekly" selected>Weekly - Changes every week</option>
+                        <option value="monthly">Monthly - Changes every month</option>
+                        <option value="yearly">Yearly - Changes every year</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Date *</label>
+                    <input type="date" id="rotationStartDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Team Members (in rotation order) *</label>
+                    <select id="rotationUsers" multiple size="5" required>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple users</small>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="rotationActive" checked>
+                        Active
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('rotationModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Rotation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Override Modal -->
+    <div id="overrideModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Create Schedule Override</h2>
+                <span class="close" onclick="closeModal('overrideModal')">&times;</span>
+            </div>
+            <form id="overrideForm" onsubmit="saveOverride(event)">
+                <div class="form-group">
+                    <label>User *</label>
+                    <select id="overrideUser" required>
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Start Date & Time *</label>
+                    <input type="datetime-local" id="overrideStart" required>
+                </div>
+                <div class="form-group">
+                    <label>End Date & Time *</label>
+                    <input type="datetime-local" id="overrideEnd" required>
+                </div>
+                <div class="form-group">
+                    <label>Reason</label>
+                    <input type="text" id="overrideReason" placeholder="Covering for John Doe">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('overrideModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Override</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Override Modal -->
+    <div id="quickOverrideModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚡ Override Now</h2>
+                <span class="close" onclick="closeModal('quickOverrideModal')">&times;</span>
+            </div>
+            <form id="quickOverrideForm" onsubmit="saveQuickOverride(event)">
+                <div class="form-group">
+                    <label>Select User *</label>
+                    <select id="quickOverrideUser" required>
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Duration *</label>
+                    <select id="quickOverrideDuration" required>
+                        <option value="1">1 Hour</option>
+                        <option value="4">4 Hours</option>
+                        <option value="8" selected>8 Hours</option>
+                        <option value="24">24 Hours (1 Day)</option>
+                        <option value="168">1 Week</option>
+                        <option value="custom">Custom...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customDurationGroup" style="display: none;">
+                    <label>Custom Hours</label>
+                    <input type="number" id="customDuration" min="1" max="720" placeholder="Enter hours">
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('quickOverrideModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Override</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Swap On-Call Modal -->
+    <div id="swapModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔄 Swap On-Call</h2>
+                <span class="close" onclick="closeModal('swapModal')">&times;</span>
+            </div>
+            <form id="swapForm" onsubmit="saveSwap(event)">
+                <div class="form-group">
+                    <label>Swap With *</label>
+                    <select id="swapWithUser" required>
+                        <!-- Populated dynamically -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Duration *</label>
+                    <select id="swapDuration" required>
+                        <option value="8">8 Hours</option>
+                        <option value="24" selected>24 Hours (1 Day)</option>
+                        <option value="168">1 Week</option>
+                        <option value="720">1 Month</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('swapModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Swap On-Call</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Webhook Modal -->
+    <div id="webhookModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="webhookModalTitle">Add Webhook</h2>
+                <span class="close" onclick="closeModal('webhookModal')">&times;</span>
+            </div>
+            <form id="webhookForm" onsubmit="saveWebhook(event)">
+                <div class="form-group">
+                    <label>Webhook Name *</label>
+                    <input type="text" id="webhookName" required placeholder="My Slack Channel">
+                </div>
+                <div class="form-group">
+                    <label>Type *</label>
+                    <select id="webhookType" required>
+                        <option value="slack">Slack</option>
+                        <option value="discord">Discord</option>
+                        <option value="teams">Microsoft Teams</option>
+                        <option value="generic">Generic HTTP POST</option>
+                    </select>
+                    <small>Payload format will be customized for the selected type</small>
+                </div>
+                <div class="form-group">
+                    <label>Webhook URL *</label>
+                    <input type="url" id="webhookUrl" required placeholder="https://hooks.slack.com/services/...">
+                    <small>The HTTP endpoint to send notifications to</small>
+                </div>
+                <div class="form-group">
+                    <label>Events to Monitor *</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px;">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="webhook-event" value="oncall_changed">
+                            <span>On-Call Changed (overrides, rotations)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="webhook-event" value="user_created">
+                            <span>User Created</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="webhook-event" value="escalation_triggered">
+                            <span>Escalation Triggered</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="webhook-event" value="call_forwarded">
+                            <span>Call Forwarded</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" class="webhook-event" value="system_issue">
+                            <span>System Issues</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="webhookEnabled" checked>
+                        Enabled
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('webhookModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Webhook</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Schedule Day Modal -->
+    <div id="scheduleDayModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Assign On-Call for Day</h2>
+                <span class="close" onclick="closeModal('scheduleDayModal')">&times;</span>
+            </div>
+            <form id="scheduleDayForm" onsubmit="saveScheduleDay(event)">
+                <div class="form-group">
+                    <label>Date</label>
+                    <div id="scheduleDayDate" style="font-weight: bold; margin-bottom: 8px;"></div>
+                    <input type="hidden" id="scheduleDayDateValue">
+                </div>
+                <div class="form-group">
+                    <label>Current Assignment</label>
+                    <div style="margin-bottom: 12px;">
+                        <span id="scheduleDayCurrentAssignment"></span>
+                        <span id="scheduleDaySource" style="color: var(--text-secondary); font-size: 0.9em;"></span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Assign To *</label>
+                    <select id="scheduleDayUser" required>
+                        <!-- Populated dynamically -->
+                    </select>
+                    <small>Select "-- Clear Assignment --" to remove manual override and use rotation</small>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('scheduleDayModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Assignment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Import Schedule Modal -->
+    <div id="importScheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📥 Import Schedule</h2>
+                <span class="close" onclick="closeModal('importScheduleModal')">&times;</span>
+            </div>
+            <form id="importScheduleForm" onsubmit="importSchedule(event)">
+                <div class="form-group">
+                    <label>Format *</label>
+                    <select id="importFormat" required>
+                        <option value="csv">CSV (date,user_name or date,user_id)</option>
+                        <option value="json">JSON ({"YYYY-MM-DD": "user_id"})</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Schedule Data *</label>
+                    <textarea id="importContent" required rows="12" style="font-family: monospace; font-size: 12px;" placeholder="2025-10-14,John Doe
+2025-10-15,Jane Smith
+2025-10-16,user_abc123
+
+or
+
+{
+  &quot;2025-10-14&quot;: &quot;user_abc123&quot;,
+  &quot;2025-10-15&quot;: &quot;user_xyz789&quot;
+}"></textarea>
+                    <small>CSV format: date,user_name (or user_id). JSON format: object with dates as keys.</small>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('importScheduleModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Import Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
