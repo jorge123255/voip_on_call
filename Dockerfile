@@ -38,17 +38,13 @@ RUN chmod +x /app/oncall_app.py
 # Copy web frontend files
 COPY web/ /app/web/
 
-# Copy default on-call configuration
-COPY config/oncall.json /app/config/oncall.json
-
 # Set environment variables
-ENV ONCALL_CONFIG=/app/config/oncall.json
-ENV API_PORT=8080
+ENV API_PORT=8765
 
 # Expose SIP port (UDP) and management API port
 EXPOSE 5060/udp
 EXPOSE 5060/tcp
-EXPOSE 8080/tcp
+EXPOSE 8765/tcp
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
@@ -64,14 +60,14 @@ ASTERISK_PID=$!\n\
 sleep 5\n\
 \n\
 # Start enhanced management API with web UI\n\
-echo "Starting Management Web UI on port 8080..."\n\
+echo "Starting Management Web UI on port 8765..."\n\
 python3 /app/oncall_app.py &\n\
 API_PID=$!\n\
 \n\
 echo "VOIP Call Forwarder started successfully"\n\
 echo "Asterisk PID: $ASTERISK_PID"\n\
 echo "API PID: $API_PID"\n\
-echo "Web UI: http://192.168.1.106:8080"\n\
+echo "Web UI: http://localhost:8765"\n\
 \n\
 # Wait for Asterisk process\n\
 wait $ASTERISK_PID\n\
